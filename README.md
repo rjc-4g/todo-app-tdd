@@ -1,7 +1,7 @@
 # todo-app-tdd
 
 ## Overview
-TODO管理Webアプリケーション
+TODO管理Webアプリケーション<br>
 TDDの習得を主眼に、React/Goで作成する
 
 ## Author
