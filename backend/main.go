@@ -10,7 +10,17 @@ type Response struct {
 	Message string `json:"message"`
 }
 
-func helloHandler(w http.ResponseWriter, r *http.Request) {
+// アプリケーションの依存関係を保持
+type Server struct {
+	taskFilePath string
+}
+
+// 新しいServerインスタンスを生成
+func NewServer(taskFilePath string) *Server {
+	return &Server{taskFilePath: taskFilePath}
+}
+
+func (s *Server) helloHandler(w http.ResponseWriter, r *http.Request) {
 	response := Response{
 		Message: "Hello World!",
 	}
@@ -20,7 +30,10 @@ func helloHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	http.HandleFunc("/", helloHandler)
+	// 本番用のファイルパスでサーバーを初期化
+	server := NewServer("data/tasks.json")
+
+	http.HandleFunc("/", server.helloHandler)
 
 	log.Println("Server starting on port 8080...")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
