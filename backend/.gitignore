@@ -1,0 +1,30 @@
+# Go関連の自動生成ファイル
+# ビルドされた実行ファイル
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+main                    # go buildで生成される実行ファイル
+docker-go-server        # プロジェクト名の実行ファイル
+
+# テスト関連
+*.test
+*.out
+
+# Air（ホットリロード）の一時ファイル
+tmp/
+build-errors.log
+
+# 依存関係ディレクトリ（通常は使わない）
+vendor/
+
+# IDE設定
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS固有ファイル
+.DS_Store
+Thumbs.db
