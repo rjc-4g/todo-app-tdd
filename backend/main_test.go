@@ -15,7 +15,7 @@ import (
 // postTasksHandler のテスト
 func TestPostTasksHandler(t *testing.T) {
 
-	// ケース1: 初回のPOSTリクエスト
+	// 正常系1: 初回のPOSTリクエスト
 	t.Run("FirstPostRequest", func(t *testing.T) {
 
 		// 1. テスト用の一時ファイルを作成
@@ -94,7 +94,7 @@ func TestPostTasksHandler(t *testing.T) {
 		}
 	})
 
-	// ケース2: 2回目のPOSTリクエスト
+	// 正常系2: 2回目のPOSTリクエスト
 	t.Run("SecondPostRequest", func(t *testing.T) {
 
 		// 1. テスト用のデータと一時ファイルを作成
@@ -181,56 +181,151 @@ func TestPostTasksHandler(t *testing.T) {
 			t.Errorf("レスポンスボディのテスト失敗\n実測値: %v\n期待値: %v", task, expectedTask)
 		}
 	})
+
+	// 異常系: システムエラー
+	t.Run("SystemError", func(t *testing.T) {
+
+		// 1. テスト対象のサーバーを不正な値（ファイルパスでなくディレクトリ）で初期化
+		tempDir := t.TempDir()
+		server := NewServer(tempFilePath)
+
+		// 2. テスト用のHTTPリクエストを作成
+		newTask := Task{Name: "タスク01"}
+		reqBody, _ := json.Marshal(newTask)
+
+		req, _ := http.NewRequest("POST", "/api/v1/tasks", bytes.NewBuffer(reqBody))
+		req.Header.Set("Content-Type", "application/json")
+
+		// 3. レスポンスを記録するためのRecorderを作成
+		rr := httptest.NewRecorder()
+
+		// 4. テスト対象のハンドラーを実行
+		handler := http.HandlerFunc(server.postTasksHandler)
+		handler.ServeHTTP(rr, req)
+
+		// 5. ステータスコードの検証
+		if status := rr.Code; status != http.StatusInternalServerError {
+			t.Errorf("ステータスコードのテスト失敗\n実測値: %v\n期待値: %v", status, http.StatusInternalServerError)
+		}
+	})
 }
 
 // getTasksHandler のテスト
 func TestGetTasksHandler(t *testing.T) {
 
-	// 1. テスト用のデータと一時ファイルを作成
-	expectedTasks := []Task{
-		{Id: 1, Name: "タスク01", Status: 0, Created: time.Date(2025, 12, 1, 10, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 1, 10, 0, 0, 0, time.UTC), Deleted: false},
-		{Id: 2, Name: "タスク02", Status: 1, Created: time.Date(2025, 12, 2, 11, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 2, 11, 0, 0, 0, time.UTC), Deleted: false},
-		{Id: 3, Name: "タスク03", Status: 1, Created: time.Date(2025, 12, 3, 12, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 3, 12, 0, 0, 0, time.UTC), Deleted: true},
-	}
-	tasksJSON, err := json.Marshal(expectedTasks)
-	if err != nil {
-		t.Fatalf("テストデータのJSON変換に失敗: %v", err)
-	}
+	// 正常系1: 一覧取得（タスクあり）
+	t.Run("GetTasksNonEmpty", func(t *testing.T) {
 
-	// t.TempDir() によりテスト終了時に自動でクリーンアップされる一時ディレクトリを作成
-	tempDir := t.TempDir()
-	tempFilePath := filepath.Join(tempDir, "test_tasks.json")
-	if err := os.WriteFile(tempFilePath, tasksJSON, 0666); err != nil {
-		t.Fatalf("一時ファイルへの書き込みに失敗: %v", err)
-	}
+		// 1. テスト用のデータと一時ファイルを作成
+		expectedTasks := []Task{
+			{Id: 1, Name: "タスク01", Status: 0, Created: time.Date(2025, 12, 1, 10, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 1, 10, 0, 0, 0, time.UTC), Deleted: false},
+			{Id: 2, Name: "タスク02", Status: 1, Created: time.Date(2025, 12, 2, 11, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 2, 11, 0, 0, 0, time.UTC), Deleted: false},
+			{Id: 3, Name: "タスク03", Status: 1, Created: time.Date(2025, 12, 3, 12, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 3, 12, 0, 0, 0, time.UTC), Deleted: true},
+		}
+		tasksJSON, err := json.Marshal(expectedTasks)
+		if err != nil {
+			t.Fatalf("テストデータのJSON変換に失敗: %v", err)
+		}
 
-	// 2. テスト対象のサーバーを一時ファイルパスで初期化
-	server := NewServer(tempFilePath)
+		// t.TempDir() によりテスト終了時に自動でクリーンアップされる一時ディレクトリを作成
+		tempDir := t.TempDir()
+		tempFilePath := filepath.Join(tempDir, "test_tasks.json")
+		if err := os.WriteFile(tempFilePath, tasksJSON, 0666); err != nil {
+			t.Fatalf("一時ファイルへの書き込みに失敗: %v", err)
+		}
 
-	// 3. テスト用のHTTPリクエストを作成
-	req, _ := http.NewRequest("GET", "/api/v1/tasks", nil)
-	req.Header.Set("Content-Type", "application/json")
+		// 2. テスト対象のサーバーを一時ファイルパスで初期化
+		server := NewServer(tempFilePath)
 
-	// 4. レスポンスを記録するためのRecorderを作成
-	rr := httptest.NewRecorder()
+		// 3. テスト用のHTTPリクエストを作成
+		req, _ := http.NewRequest("GET", "/api/v1/tasks", nil)
+		req.Header.Set("Content-Type", "application/json")
 
-	// 5. テスト対象のハンドラーを実行
-	handler := http.HandlerFunc(server.getTasksHandler)
-	handler.ServeHTTP(rr, req)
+		// 4. レスポンスを記録するためのRecorderを作成
+		rr := httptest.NewRecorder()
 
-	// 6. ステータスコードの検証
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("ステータスコードのテスト失敗\n実測値: %v\n期待値: %v", status, http.StatusOK)
-	}
+		// 5. テスト対象のハンドラーを実行
+		handler := http.HandlerFunc(server.getTasksHandler)
+		handler.ServeHTTP(rr, req)
 
-	// 7. レスポンスボディの検証
-	var tasks []Task
-	if err := json.NewDecoder(rr.Body).Decode(&tasks); err != nil {
-		t.Fatalf("レスポンスボディのデコードに失敗: %v", err)
-	}
-	if !reflect.DeepEqual(tasks, expectedTasks) {
-		t.Errorf("レスポンスボディのテスト失敗\n実測値: %v\n期待値: %v", tasks, expectedTasks)
-	}
+		// 6. ステータスコードの検証
+		if status := rr.Code; status != http.StatusOK {
+			t.Errorf("ステータスコードのテスト失敗\n実測値: %v\n期待値: %v", status, http.StatusOK)
+		}
+
+		// 7. レスポンスボディの検証
+		var tasks []Task
+		if err := json.NewDecoder(rr.Body).Decode(&tasks); err != nil {
+			t.Fatalf("レスポンスボディのデコードに失敗: %v", err)
+		}
+		if !reflect.DeepEqual(tasks, expectedTasks) {
+			t.Errorf("レスポンスボディのテスト失敗\n実測値: %v\n期待値: %v", tasks, expectedTasks)
+		}
+	})
+
+	// 正常系2: 一覧取得（タスクなし）
+	t.Run("GetTasksEmpty", func(t *testing.T) {
+
+		// 1. 空の一時ファイルを作成
+		tempDir := t.TempDir()
+		tempFilePath := filepath.Join(tempDir, "test_tasks.json")
+		if err := os.WriteFile(tempFilePath, []byte(""), 0666); err != nil {
+			t.Fatalf("一時ファイルへの書き込みに失敗: %v", err)
+		}
+
+		// 2. テスト対象のサーバーを一時ファイルパスで初期化
+		server := NewServer(tempFilePath)
+
+		// 3. テスト用のHTTPリクエストを作成
+		req, _ := http.NewRequest("GET", "/api/v1/tasks", nil)
+		req.Header.Set("Content-Type", "application/json")
+
+		// 4. レスポンスを記録するためのRecorderを作成
+		rr := httptest.NewRecorder()
+
+		// 5. テスト対象のハンドラーを実行
+		handler := http.HandlerFunc(server.getTasksHandler)
+		handler.ServeHTTP(rr, req)
+
+		// 6. ステータスコードの検証
+		if status := rr.Code; status != http.StatusOK {
+			t.Errorf("ステータスコードのテスト失敗\n実測値: %v\n期待値: %v", status, http.StatusOK)
+		}
+
+		// 7. レスポンスボディの検証
+		var tasks []Task
+		if err := json.NewDecoder(rr.Body).Decode(&tasks); err != nil {
+			t.Fatalf("レスポンスボディのデコードに失敗: %v", err)
+		}
+		expectedTasks := []Task{}
+		if !reflect.DeepEqual(tasks, expectedTasks) {
+			t.Errorf("レスポンスボディのテスト失敗\n実測値: %v\n期待値: %v", tasks, expectedTasks)
+		}
+	})
+
+	// 異常系: システムエラー
+	t.Run("SystemError", func(t *testing.T) {
+
+		// 1. テスト対象のサーバーを不正な値（ファイルパスでなくディレクトリ）で初期化
+		tempDir := t.TempDir()
+		server := NewServer(tempFilePath)
+
+		// 2. テスト用のHTTPリクエストを作成
+		req, _ := http.NewRequest("GET", "/api/v1/tasks", nil)
+		req.Header.Set("Content-Type", "application/json")
+
+		// 3. レスポンスを記録するためのRecorderを作成
+		rr := httptest.NewRecorder()
+
+		// 4. テスト対象のハンドラーを実行
+		handler := http.HandlerFunc(server.getTasksHandler)
+		handler.ServeHTTP(rr, req)
+
+		// 5. ステータスコードの検証
+		if status := rr.Code; status != http.StatusInternalServerError {
+			t.Errorf("ステータスコードのテスト失敗\n実測値: %v\n期待値: %v", status, http.StatusInternalServerError)
+		}
+	})
 }
 
 // patchTasksHandler のテスト
@@ -435,6 +530,32 @@ func TestPatchTasksHandler(t *testing.T) {
 			t.Errorf("JSONファイルのテスト失敗\n実測値: %v\n期待値: %v", fileTasks, initialTasks)
 		}
 	})
+
+	// 異常系: システムエラー
+	t.Run("SystemError", func(t *testing.T) {
+
+		// 1. テスト対象のサーバーを不正な値（ファイルパスでなくディレクトリ）で初期化
+		tempDir := t.TempDir()
+		server := NewServer(tempFilePath)
+
+		// 2. テスト用のHTTPリクエストを作成
+		reqTask := Task{Status: 1}
+		reqBody, _ := json.Marshal(reqTask)
+		req, _ := http.NewRequest("PATCH", "/api/v1/tasks/1", bytes.NewBuffer(reqBody))
+		req.Header.Set("Content-Type", "application/json")
+
+		// 3. レスポンスを記録するためのRecorderを作成
+		rr := httptest.NewRecorder()
+
+		// 4. テスト対象のハンドラーを実行
+		handler := http.HandlerFunc(server.patchTasksHandler)
+		handler.ServeHTTP(rr, req)
+
+		// 5. ステータスコードの検証
+		if status := rr.Code; status != http.StatusInternalServerError {
+			t.Errorf("ステータスコードのテスト失敗\n実測値: %v\n期待値: %v", status, http.StatusInternalServerError)
+		}
+	})
 }
 
 // deleteTasksHandler のテスト
@@ -558,6 +679,30 @@ func TestDeleteTasksHandler(t *testing.T) {
 		// JSONファイルの内容が更新されていないことを確認
 		if !reflect.DeepEqual(fileTasks, initialTasks) {
 			t.Errorf("JSONファイルのテスト失敗\n実測値: %v\n期待値: %v", fileTasks, initialTasks)
+		}
+	})
+
+	// 異常系: システムエラー
+	t.Run("SystemError", func(t *testing.T) {
+
+		// 1. テスト対象のサーバーを不正な値（ファイルパスでなくディレクトリ）で初期化
+		tempDir := t.TempDir()
+		server := NewServer(tempFilePath)
+
+		// 2. テスト用のHTTPリクエストを作成
+		req, _ := http.NewRequest("PATCH", "/api/v1/tasks/1", nil)
+		req.Header.Set("Content-Type", "application/json")
+
+		// 3. レスポンスを記録するためのRecorderを作成
+		rr := httptest.NewRecorder()
+
+		// 4. テスト対象のハンドラーを実行
+		handler := http.HandlerFunc(server.deleteTasksHandler)
+		handler.ServeHTTP(rr, req)
+
+		// 5. ステータスコードの検証
+		if status := rr.Code; status != http.StatusInternalServerError {
+			t.Errorf("ステータスコードのテスト失敗\n実測値: %v\n期待値: %v", status, http.StatusInternalServerError)
 		}
 	})
 }
