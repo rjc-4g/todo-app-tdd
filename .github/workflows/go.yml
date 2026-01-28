@@ -24,7 +24,9 @@ jobs:
         cache: false
 
     - name: Install dependencies
-      run: go mod download
+      run: |
+        cd todo-app-tdd/backend
+        go mod download
     
     - name: Build
       run: go build -v ./...
