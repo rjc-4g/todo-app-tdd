@@ -80,7 +80,7 @@ func TestPostTasksHandler(t *testing.T) {
 		expectedTasks := []Task{expectedTask}
 
 		// JSONファイルの内容と想定されるタスクの比較
-		if !reflect.DeepEqual(fileContent, expectedTasks) {
+		if !reflect.DeepEqual(fileTasks, expectedTasks) {
 			t.Errorf("JSONファイルのテスト失敗\n実測値: %v\n期待値: %v", fileTasks, expectedTasks)
 		}
 
@@ -168,7 +168,7 @@ func TestPostTasksHandler(t *testing.T) {
 		expectedTasks := append(initialTasks, expectedTask)
 
 		// JSONファイルの内容と想定されるタスクの比較
-		if !reflect.DeepEqual(fileContent, expectedTasks) {
+		if !reflect.DeepEqual(fileTasks, expectedTasks) {
 			t.Errorf("JSONファイルのテスト失敗\n実測値: %v\n期待値: %v", fileTasks, expectedTasks)
 		}
 
@@ -236,137 +236,328 @@ func TestGetTasksHandler(t *testing.T) {
 // patchTasksHandler のテスト
 func TestPatchTasksHandler(t *testing.T) {
 
-	// 1. テスト用のデータと一時ファイルを作成
-	initialTasks := []Task{
-		{Id: 1, Name: "タスク01", Status: 0, Created: time.Date(2025, 12, 1, 10, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 1, 10, 0, 0, 0, time.UTC), Deleted: false},
-		{Id: 2, Name: "タスク02", Status: 1, Created: time.Date(2025, 12, 2, 11, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 2, 11, 0, 0, 0, time.UTC), Deleted: false},
-		{Id: 3, Name: "タスク03", Status: 1, Created: time.Date(2025, 12, 3, 12, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 3, 12, 0, 0, 0, time.UTC), Deleted: true},
-	}
-	initialJSON, err := json.Marshal(initialTasks)
-	if err != nil {
-		t.Fatalf("テストデータのJSON変換に失敗: %v", err)
-	}
+	// 正常系1: 0から1へ更新
+	t.Run("UpdateStatusFrom0To1", func(t *testing.T) {
 
-	// t.TempDir() によりテスト終了時に自動でクリーンアップされる一時ディレクトリを作成
-	tempDir := t.TempDir()
-	tempFilePath := filepath.Join(tempDir, "test_tasks.json")
-	if err := os.WriteFile(tempFilePath, initialJSON, 0666); err != nil {
-		t.Fatalf("一時ファイルへの書き込みに失敗: %v", err)
-	}
+		// 1. テスト用のデータと一時ファイルを作成
+		initialTasks := []Task{
+			{Id: 1, Name: "タスク01", Status: 0, Created: time.Date(2025, 12, 1, 10, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 1, 10, 0, 0, 0, time.UTC), Deleted: false},
+			{Id: 2, Name: "タスク02", Status: 1, Created: time.Date(2025, 12, 2, 11, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 2, 11, 0, 0, 0, time.UTC), Deleted: false},
+			{Id: 3, Name: "タスク03", Status: 1, Created: time.Date(2025, 12, 3, 12, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 3, 12, 0, 0, 0, time.UTC), Deleted: true},
+		}
+		initialJSON, err := json.Marshal(initialTasks)
+		if err != nil {
+			t.Fatalf("テストデータのJSON変換に失敗: %v", err)
+		}
 
-	// 2. テスト対象のサーバーを一時ファイルパスで初期化
-	server := NewServer(tempFilePath)
+		// t.TempDir() によりテスト終了時に自動でクリーンアップされる一時ディレクトリを作成
+		tempDir := t.TempDir()
+		tempFilePath := filepath.Join(tempDir, "test_tasks.json")
+		if err := os.WriteFile(tempFilePath, initialJSON, 0666); err != nil {
+			t.Fatalf("一時ファイルへの書き込みに失敗: %v", err)
+		}
 
-	// 3. テスト用のHTTPリクエストを作成
-	updatedStatus := 1 // 更新後のステータス
-	reqTask := Task{Status: updatedStatus}
-	reqBody, _ := json.Marshal(reqTask)
+		// 2. テスト対象のサーバーを一時ファイルパスで初期化
+		server := NewServer(tempFilePath)
 
-	taskId := 1 // 更新対象のId
-	req, _ := http.NewRequest("PATCH", "/api/v1/tasks/" + strconv.Itoa(taskId), bytes.NewBuffer(reqBody))
-	req.Header.Set("Content-Type", "application/json")
+		// 3. テスト用のHTTPリクエストを作成
+		updatedStatus := 1 // 更新後のステータス
+		reqTask := Task{Status: updatedStatus}
+		reqBody, _ := json.Marshal(reqTask)
 
-	// 4. レスポンスを記録するためのRecorderを作成
-	rr := httptest.NewRecorder()
+		taskId := 1 // 更新対象のId
+		req, _ := http.NewRequest("PATCH", "/api/v1/tasks/" + strconv.Itoa(taskId), bytes.NewBuffer(reqBody))
+		req.Header.Set("Content-Type", "application/json")
 
-	// 5. テスト対象のハンドラーを実行
-	handler := http.HandlerFunc(server.patchTasksHandler)
-	handler.ServeHTTP(rr, req)
+		// 4. レスポンスを記録するためのRecorderを作成
+		rr := httptest.NewRecorder()
 
-	// 6. ステータスコードの検証
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("ステータスコードのテスト失敗\n実測値: %v\n期待値: %v", status, http.StatusOK)
-	}
+		// 5. テスト対象のハンドラーを実行
+		handler := http.HandlerFunc(server.patchTasksHandler)
+		handler.ServeHTTP(rr, req)
 
-	// 7. JSONファイルの検証
-	fileContent, _ := os.ReadFile(tempFilePath)
-	var fileTasks []Task
-	if err := json.Unmarshal(fileContent, &fileTasks); err != nil {
-		t.Fatalf("ファイル内容のデコードに失敗: %v", err)
-	}
+		// 6. ステータスコードの検証
+		if status := rr.Code; status != http.StatusOK {
+			t.Errorf("ステータスコードのテスト失敗\n実測値: %v\n期待値: %v", status, http.StatusOK)
+		}
 
-	// 更新対象のタスク
-	updatedTask := fileTasks[taskId - 1]
+		// 7. JSONファイルの検証
+		fileContent, _ := os.ReadFile(tempFilePath)
+		var fileTasks []Task
+		if err := json.Unmarshal(fileContent, &fileTasks); err != nil {
+			t.Fatalf("ファイル内容のデコードに失敗: %v", err)
+		}
 
-	// 更新日時の検証: 実行時刻と保存された時刻の差が小さいことを確認（1秒以内）
-	if time.Since(updatedTask.Updated) > 1*time.Second {
-		t.Errorf("更新日時が不正: %v", updatedTask.Updated)
-	}
+		// 更新対象のタスク
+		updatedTask := fileTasks[taskId - 1]
 
-	// 更新されたタスクの期待値
-	expectedTask := initialTasks[taskId - 1]
-	expectedTask.Status = updatedStatus
-	expectedTask.Updated = updatedTask.Updated // 更新日時は期待値に実測値を設定
+		// 更新日時の検証: 実行時刻と保存された時刻の差が小さいことを確認（1秒以内）
+		if time.Since(updatedTask.Updated) > 1*time.Second {
+			t.Errorf("更新日時が不正: %v", updatedTask.Updated)
+		}
 
-	// JSONファイルの内容と想定されるタスクの比較
-	if !reflect.DeepEqual(fileContent, expectedTasks) {
-		t.Errorf("JSONファイルのテスト失敗\n実測値: %v\n期待値: %v", fileTasks, expectedTasks)
-	}
+		// 更新されたタスクの期待値
+		expectedTask := initialTasks[taskId - 1]
+		expectedTask.Status = updatedStatus
+		expectedTask.Updated = updatedTask.Updated // 更新日時は期待値に実測値を設定
+
+		// JSONファイルの内容と想定されるタスクの比較
+		if !reflect.DeepEqual(fileTasks, expectedTasks) {
+			t.Errorf("JSONファイルのテスト失敗\n実測値: %v\n期待値: %v", fileTasks, expectedTasks)
+		}
+	})
+
+	// 正常系2: 1から0へ更新
+	t.Run("UpdateStatusFrom1To0", func(t *testing.T) {
+
+		// 1. テスト用のデータと一時ファイルを作成
+		initialTasks := []Task{
+			{Id: 1, Name: "タスク01", Status: 0, Created: time.Date(2025, 12, 1, 10, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 1, 10, 0, 0, 0, time.UTC), Deleted: false},
+			{Id: 2, Name: "タスク02", Status: 1, Created: time.Date(2025, 12, 2, 11, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 2, 11, 0, 0, 0, time.UTC), Deleted: false},
+			{Id: 3, Name: "タスク03", Status: 1, Created: time.Date(2025, 12, 3, 12, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 3, 12, 0, 0, 0, time.UTC), Deleted: true},
+		}
+		initialJSON, err := json.Marshal(initialTasks)
+		if err != nil {
+			t.Fatalf("テストデータのJSON変換に失敗: %v", err)
+		}
+
+		// t.TempDir() によりテスト終了時に自動でクリーンアップされる一時ディレクトリを作成
+		tempDir := t.TempDir()
+		tempFilePath := filepath.Join(tempDir, "test_tasks.json")
+		if err := os.WriteFile(tempFilePath, initialJSON, 0666); err != nil {
+			t.Fatalf("一時ファイルへの書き込みに失敗: %v", err)
+		}
+
+		// 2. テスト対象のサーバーを一時ファイルパスで初期化
+		server := NewServer(tempFilePath)
+
+		// 3. テスト用のHTTPリクエストを作成
+		updatedStatus := 0 // 更新後のステータス
+		reqTask := Task{Status: updatedStatus}
+		reqBody, _ := json.Marshal(reqTask)
+
+		taskId := 2 // 更新対象のId
+		req, _ := http.NewRequest("PATCH", "/api/v1/tasks/" + strconv.Itoa(taskId), bytes.NewBuffer(reqBody))
+		req.Header.Set("Content-Type", "application/json")
+
+		// 4. レスポンスを記録するためのRecorderを作成
+		rr := httptest.NewRecorder()
+
+		// 5. テスト対象のハンドラーを実行
+		handler := http.HandlerFunc(server.patchTasksHandler)
+		handler.ServeHTTP(rr, req)
+
+		// 6. ステータスコードの検証
+		if status := rr.Code; status != http.StatusOK {
+			t.Errorf("ステータスコードのテスト失敗\n実測値: %v\n期待値: %v", status, http.StatusOK)
+		}
+
+		// 7. JSONファイルの検証
+		fileContent, _ := os.ReadFile(tempFilePath)
+		var fileTasks []Task
+		if err := json.Unmarshal(fileContent, &fileTasks); err != nil {
+			t.Fatalf("ファイル内容のデコードに失敗: %v", err)
+		}
+
+		// 更新対象のタスク
+		updatedTask := fileTasks[taskId - 1]
+
+		// 更新日時の検証: 実行時刻と保存された時刻の差が小さいことを確認（1秒以内）
+		if time.Since(updatedTask.Updated) > 1*time.Second {
+			t.Errorf("更新日時が不正: %v", updatedTask.Updated)
+		}
+
+		// 更新されたタスクの期待値
+		expectedTask := initialTasks[taskId - 1]
+		expectedTask.Status = updatedStatus
+		expectedTask.Updated = updatedTask.Updated // 更新日時は期待値に実測値を設定
+
+		// JSONファイルの内容と想定されるタスクの比較
+		if !reflect.DeepEqual(fileTasks, expectedTasks) {
+			t.Errorf("JSONファイルのテスト失敗\n実測値: %v\n期待値: %v", fileTasks, expectedTasks)
+		}
+	})
+
+	// 異常系: 存在しないIdの指定
+	t.Run("InvalidTaskId", func(t *testing.T) {
+
+		// 1. テスト用のデータと一時ファイルを作成
+		initialTasks := []Task{
+			{Id: 1, Name: "タスク01", Status: 0, Created: time.Date(2025, 12, 1, 10, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 1, 10, 0, 0, 0, time.UTC), Deleted: false},
+			{Id: 2, Name: "タスク02", Status: 1, Created: time.Date(2025, 12, 2, 11, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 2, 11, 0, 0, 0, time.UTC), Deleted: false},
+			{Id: 3, Name: "タスク03", Status: 1, Created: time.Date(2025, 12, 3, 12, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 3, 12, 0, 0, 0, time.UTC), Deleted: true},
+		}
+		initialJSON, err := json.Marshal(initialTasks)
+		if err != nil {
+			t.Fatalf("テストデータのJSON変換に失敗: %v", err)
+		}
+
+		// t.TempDir() によりテスト終了時に自動でクリーンアップされる一時ディレクトリを作成
+		tempDir := t.TempDir()
+		tempFilePath := filepath.Join(tempDir, "test_tasks.json")
+		if err := os.WriteFile(tempFilePath, initialJSON, 0666); err != nil {
+			t.Fatalf("一時ファイルへの書き込みに失敗: %v", err)
+		}
+
+		// 2. テスト対象のサーバーを一時ファイルパスで初期化
+		server := NewServer(tempFilePath)
+
+		// 3. テスト用のHTTPリクエストを作成
+		updatedStatus := 1 // 更新後のステータス
+		reqTask := Task{Status: updatedStatus}
+		reqBody, _ := json.Marshal(reqTask)
+
+		taskId := 4 // 存在しないId
+		req, _ := http.NewRequest("PATCH", "/api/v1/tasks/" + strconv.Itoa(taskId), bytes.NewBuffer(reqBody))
+		req.Header.Set("Content-Type", "application/json")
+
+		// 4. レスポンスを記録するためのRecorderを作成
+		rr := httptest.NewRecorder()
+
+		// 5. テスト対象のハンドラーを実行
+		handler := http.HandlerFunc(server.patchTasksHandler)
+		handler.ServeHTTP(rr, req)
+
+		// 6. ステータスコードの検証
+		if status := rr.Code; status != http.StatusNotFound {
+			t.Errorf("ステータスコードのテスト失敗\n実測値: %v\n期待値: %v", status, http.StatusNotFound)
+		}
+
+		// 7. JSONファイルの検証
+		fileContent, _ := os.ReadFile(tempFilePath)
+		var fileTasks []Task
+		if err := json.Unmarshal(fileContent, &fileTasks); err != nil {
+			t.Fatalf("ファイル内容のデコードに失敗: %v", err)
+		}
+
+		// JSONファイルの内容が更新されていないことを確認
+		if !reflect.DeepEqual(fileTasks, initialTasks) {
+			t.Errorf("JSONファイルのテスト失敗\n実測値: %v\n期待値: %v", fileTasks, initialTasks)
+		}
+	})
 }
 
 // deleteTasksHandler のテスト
 func TestDeleteTasksHandler(t *testing.T) {
 
-	// 1. テスト用のデータと一時ファイルを作成
-	initialTasks := []Task{
-		{Id: 1, Name: "タスク01", Status: 0, Created: time.Date(2025, 12, 1, 10, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 1, 10, 0, 0, 0, time.UTC), Deleted: false},
-		{Id: 2, Name: "タスク02", Status: 1, Created: time.Date(2025, 12, 2, 11, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 2, 11, 0, 0, 0, time.UTC), Deleted: false},
-		{Id: 3, Name: "タスク03", Status: 1, Created: time.Date(2025, 12, 3, 12, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 3, 12, 0, 0, 0, time.UTC), Deleted: true},
-	}
-	initialJSON, err := json.Marshal(initialTasks)
-	if err != nil {
-		t.Fatalf("テストデータのJSON変換に失敗: %v", err)
-	}
+	// 正常系: タスクの論理削除
+	t.Run("DeleteTask", func(t *testing.T) {
 
-	// t.TempDir() によりテスト終了時に自動でクリーンアップされる一時ディレクトリを作成
-	tempDir := t.TempDir()
-	tempFilePath := filepath.Join(tempDir, "test_tasks.json")
-	if err := os.WriteFile(tempFilePath, initialJSON, 0666); err != nil {
-		t.Fatalf("一時ファイルへの書き込みに失敗: %v", err)
-	}
+		// 1. テスト用のデータと一時ファイルを作成
+		initialTasks := []Task{
+			{Id: 1, Name: "タスク01", Status: 0, Created: time.Date(2025, 12, 1, 10, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 1, 10, 0, 0, 0, time.UTC), Deleted: false},
+			{Id: 2, Name: "タスク02", Status: 1, Created: time.Date(2025, 12, 2, 11, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 2, 11, 0, 0, 0, time.UTC), Deleted: false},
+			{Id: 3, Name: "タスク03", Status: 1, Created: time.Date(2025, 12, 3, 12, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 3, 12, 0, 0, 0, time.UTC), Deleted: true},
+		}
+		initialJSON, err := json.Marshal(initialTasks)
+		if err != nil {
+			t.Fatalf("テストデータのJSON変換に失敗: %v", err)
+		}
 
-	// 2. テスト対象のサーバーを一時ファイルパスで初期化
-	server := NewServer(tempFilePath)
+		// t.TempDir() によりテスト終了時に自動でクリーンアップされる一時ディレクトリを作成
+		tempDir := t.TempDir()
+		tempFilePath := filepath.Join(tempDir, "test_tasks.json")
+		if err := os.WriteFile(tempFilePath, initialJSON, 0666); err != nil {
+			t.Fatalf("一時ファイルへの書き込みに失敗: %v", err)
+		}
 
-	// 3. テスト用のHTTPリクエストを作成
-	taskId := 1 // 削除対象のId
-	req, _ := http.NewRequest("PATCH", "/api/v1/tasks/" + strconv.Itoa(taskId), nil)
-	req.Header.Set("Content-Type", "application/json")
+		// 2. テスト対象のサーバーを一時ファイルパスで初期化
+		server := NewServer(tempFilePath)
 
-	// 4. レスポンスを記録するためのRecorderを作成
-	rr := httptest.NewRecorder()
+		// 3. テスト用のHTTPリクエストを作成
+		taskId := 1 // 削除対象のId
+		req, _ := http.NewRequest("PATCH", "/api/v1/tasks/" + strconv.Itoa(taskId), nil)
+		req.Header.Set("Content-Type", "application/json")
 
-	// 5. テスト対象のハンドラーを実行
-	handler := http.HandlerFunc(server.deleteTasksHandler)
-	handler.ServeHTTP(rr, req)
+		// 4. レスポンスを記録するためのRecorderを作成
+		rr := httptest.NewRecorder()
 
-	// 6. ステータスコードの検証
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("ステータスコードのテスト失敗\n実測値: %v\n期待値: %v", status, http.StatusOK)
-	}
+		// 5. テスト対象のハンドラーを実行
+		handler := http.HandlerFunc(server.deleteTasksHandler)
+		handler.ServeHTTP(rr, req)
 
-	// 7. JSONファイルの検証
-	fileContent, _ := os.ReadFile(tempFilePath)
-	var fileTasks []Task
-	if err := json.Unmarshal(fileContent, &fileTasks); err != nil {
-		t.Fatalf("ファイル内容のデコードに失敗: %v", err)
-	}
+		// 6. ステータスコードの検証
+		if status := rr.Code; status != http.StatusOK {
+			t.Errorf("ステータスコードのテスト失敗\n実測値: %v\n期待値: %v", status, http.StatusOK)
+		}
 
-	// 削除対象のタスク
-	deletedTask := fileTasks[taskId - 1]
+		// 7. JSONファイルの検証
+		fileContent, _ := os.ReadFile(tempFilePath)
+		var fileTasks []Task
+		if err := json.Unmarshal(fileContent, &fileTasks); err != nil {
+			t.Fatalf("ファイル内容のデコードに失敗: %v", err)
+		}
 
-	// 更新日時の検証: 実行時刻と保存された時刻の差が小さいことを確認（1秒以内）
-	if time.Since(deletedTask.Updated) > 1*time.Second {
-		t.Errorf("更新日時が不正: %v", deletedTask.Updated)
-	}
+		// 削除対象のタスク
+		deletedTask := fileTasks[taskId - 1]
 
-	// 削除されたタスクの期待値
-	expectedTask := initialTasks[taskId - 1]
-	expectedTask.Deleted = true
-	expectedTask.Updated = updatedTask.Updated // 更新日時は期待値に実測値を設定
+		// 更新日時の検証: 実行時刻と保存された時刻の差が小さいことを確認（1秒以内）
+		if time.Since(deletedTask.Updated) > 1*time.Second {
+			t.Errorf("更新日時が不正: %v", deletedTask.Updated)
+		}
 
-	// JSONファイルの内容と想定されるタスクの比較
-	if !reflect.DeepEqual(fileContent, expectedTasks) {
-		t.Errorf("JSONファイルのテスト失敗\n実測値: %v\n期待値: %v", fileTasks, expectedTasks)
-	}
+		// 削除されたタスクの期待値
+		expectedTask := initialTasks[taskId - 1]
+		expectedTask.Deleted = true
+		expectedTask.Updated = updatedTask.Updated // 更新日時は期待値に実測値を設定
+
+		// JSONファイルの内容と想定されるタスクの比較
+		if !reflect.DeepEqual(fileTasks, expectedTasks) {
+			t.Errorf("JSONファイルのテスト失敗\n実測値: %v\n期待値: %v", fileTasks, expectedTasks)
+		}
+	})
+
+	// 異常系: 存在しないIdの指定
+	t.Run("InvalidTaskId", func(t *testing.T) {
+
+		// 1. テスト用のデータと一時ファイルを作成
+		initialTasks := []Task{
+			{Id: 1, Name: "タスク01", Status: 0, Created: time.Date(2025, 12, 1, 10, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 1, 10, 0, 0, 0, time.UTC), Deleted: false},
+			{Id: 2, Name: "タスク02", Status: 1, Created: time.Date(2025, 12, 2, 11, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 2, 11, 0, 0, 0, time.UTC), Deleted: false},
+			{Id: 3, Name: "タスク03", Status: 1, Created: time.Date(2025, 12, 3, 12, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 3, 12, 0, 0, 0, time.UTC), Deleted: true},
+		}
+		initialJSON, err := json.Marshal(initialTasks)
+		if err != nil {
+			t.Fatalf("テストデータのJSON変換に失敗: %v", err)
+		}
+
+		// t.TempDir() によりテスト終了時に自動でクリーンアップされる一時ディレクトリを作成
+		tempDir := t.TempDir()
+		tempFilePath := filepath.Join(tempDir, "test_tasks.json")
+		if err := os.WriteFile(tempFilePath, initialJSON, 0666); err != nil {
+			t.Fatalf("一時ファイルへの書き込みに失敗: %v", err)
+		}
+
+		// 2. テスト対象のサーバーを一時ファイルパスで初期化
+		server := NewServer(tempFilePath)
+
+		// 3. テスト用のHTTPリクエストを作成
+		taskId := 4 // 存在しないId
+		req, _ := http.NewRequest("PATCH", "/api/v1/tasks/" + strconv.Itoa(taskId), nil)
+		req.Header.Set("Content-Type", "application/json")
+
+		// 4. レスポンスを記録するためのRecorderを作成
+		rr := httptest.NewRecorder()
+
+		// 5. テスト対象のハンドラーを実行
+		handler := http.HandlerFunc(server.deleteTasksHandler)
+		handler.ServeHTTP(rr, req)
+
+		// 6. ステータスコードの検証
+		if status := rr.Code; status != http.StatusNotFound {
+			t.Errorf("ステータスコードのテスト失敗\n実測値: %v\n期待値: %v", status, http.StatusNotFound)
+		}
+
+		// 7. JSONファイルの検証
+		fileContent, _ := os.ReadFile(tempFilePath)
+		var fileTasks []Task
+		if err := json.Unmarshal(fileContent, &fileTasks); err != nil {
+			t.Fatalf("ファイル内容のデコードに失敗: %v", err)
+		}
+
+		// JSONファイルの内容が更新されていないことを確認
+		if !reflect.DeepEqual(fileTasks, initialTasks) {
+			t.Errorf("JSONファイルのテスト失敗\n実測値: %v\n期待値: %v", fileTasks, initialTasks)
+		}
+	})
 }
