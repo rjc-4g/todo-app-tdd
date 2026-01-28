@@ -28,3 +28,6 @@ vendor/
 # OS固有ファイル
 .DS_Store
 Thumbs.db
+
+# タスク永続化JSONファイル
+data/tasks.json

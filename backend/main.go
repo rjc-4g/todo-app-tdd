@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"path/filepath"
 	"net/http"
 	"os"
 	"time"
@@ -97,6 +98,13 @@ func (s *Server) postTasksHandler(w http.ResponseWriter, r *http.Request) {
 	tasksJSON, err := json.MarshalIndent(tasks, "", "  ")
 	if err != nil {
 		http.Error(w, "タスクデータのJSON変換に失敗しました: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// ファイルに書き込む前にディレクトリが存在することを確認
+	dir := filepath.Dir(s.taskFilePath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		http.Error(w, "ディレクトリの作成に失敗しました: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
