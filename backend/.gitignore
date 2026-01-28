@@ -19,6 +19,11 @@ build-errors.log
 # 依存関係ディレクトリ（通常は使わない）
 vendor/
 
+# 環境変数ファイル（重要：APIキーなどの秘密情報を含む）
+.env
+.env.local
+.env.*.local
+
 # IDE設定
 .vscode/
 .idea/
