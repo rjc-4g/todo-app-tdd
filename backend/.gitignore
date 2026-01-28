@@ -16,10 +16,10 @@ docker-go-server        # プロジェクト名の実行ファイル
 tmp/
 build-errors.log
 
-# 依存関係ディレクトリ（通常は使わない）
+# 依存関係ディレクトリ
 vendor/
 
-# 環境変数ファイル（重要：APIキーなどの秘密情報を含む）
+# 環境変数ファイル
 .env
 .env.local
 .env.*.local

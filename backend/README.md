@@ -5,70 +5,46 @@ Go 1.24.5とDockerを使用したシンプルなHTTPサーバーです。開発�
 ## 特徴
 
 - シンプルなHTTP APIサーバー
-- "Hello World" JSONレスポンスを返す
 - Airによるホットリロード機能
 - Docker環境での開発
 - ミニマルな構成
-
-## 必要な環境変数
-
-`.env`ファイルを作成して以下の環境変数を設定してください：
-
-```bash
-# AI API Configuration
-OPENAI_API_KEY=your_openai_api_key_here
-```
-
-## OpenAI APIキーの取得
-
-1. [OpenAI Platform](https://platform.openai.com/)にアクセス
-2. アカウントを作成またはログイン
-3. 設定（歯車） → API Keysセクションで新しいAPIキーを生成
-4. 生成されたキーを.envの`OPENAI_API_KEY`に設定
-
-## クイックスタート
-
-```bash
-# リポジトリをクローン
-git clone https://github.com/your-username/docker-go-server.git
-cd docker-go-server
-
-# 環境変数を設定
-cp .env.example .env
-# .envファイルを編集してAPIキーを設定
-
-# 依存関係をインストール
-go mod tidy
-
-# 開発サーバー起動
-docker compose up --build
-```
+cdcd
+## 目的
+- テスト駆動開発
 
 ## APIエンドポイント
 
-- `GET /` - Hello World JSONを返す
+サーバー側で​実装する​こと。​
+目的の通り、テスト駆動開発が目的のため、まずはテストケースを作成すること。
 
-レスポンス例：
-```json
-{
-  "message": "Hello World!"
-}
-```
+・新規​（Create）​
+　・メソッド：POST
+　・エンドポイント：/api/v1/tasks
+　・​機能：リクエスト内容を​JSONファイルに​書き出し
+・​一覧​表示​（Read）​
+　・メソッド：GET
+　・エンドポイント：/api/v1/tasks
+　・​機能：JSONファイルの​全内容を​返却
+・チェック​（Update）​
+　・メソッド：PATCH
+　・エンドポイント：/api/v1/tasks/{id}
+　・​機能：status の​ 0/1 を​更新
+・削除​（Delete）​
+　・メソッド：DELETE
+　・エンドポイント：/api/v1/tasks/{id}
+　・​機能：指定された​idの​deletedを​trueに​更新
 
-### `GET /api/themes/random` - ランダムテーマ生成
-技術関連のランダムなテーマを3つ返します。
+※TDDが​主目的、​かつリレーショナルな​データ構造不要の​ため、​DBでなく​JSONファイルで​管理。
 
-レスポンス例：
-```json
-{
-  "themes": [
-    "最近学んだ新しいプログラミング言語の特徴",
-    "開発環境の効率化テクニック",
-    "コードレビューのベストプラクティス"
-  ],
-  "count": 3
-}
-```
+## JSONファイルの構成
+~~~
+id int(20) not null PK  auto incliment
+name varchar(40) not null
+status int(1) not null default 0
+created timestamp not null
+updated timestamp not null
+deleted bool not null deafult false
+~~~
 
 ## 動作確認
 
