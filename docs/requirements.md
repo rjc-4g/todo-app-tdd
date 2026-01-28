@@ -16,21 +16,21 @@
 ## 1. バックエンド
 
 - 新規(Create)
-  - メソッド:POST
-  - エンドポイント:/api/v1/tasks
-  - 機能:リクエスト内容をJSONファイルに書き出し
+  - メソッド：POST
+  - エンドポイント：`/api/v1/tasks`
+  - 機能：リクエスト内容をJSONファイルに書き出し
 - 一覧表示(Read)
-  - メソッド:GET
-  - エンドポイント:/api/v1/tasks
-  - 機能:JSONファイルの全内容を返却
+  - メソッド：GET
+  - エンドポイント：`/api/v1/tasks`
+  - 機能：JSONファイルの全内容を返却
 - チェック(Update)
-  - メソッド:PATCH
-  - エンドポイント:/api/v1/tasks/{id}
-  - 機能:status の 0/1 を更新
+  - メソッド：PATCH
+  - エンドポイント：`/api/v1/tasks/{id}`
+  - 機能：status の 0/1 を更新
 - 削除(Delete)
-  - メソッド:DELETE
-  - エンドポイント:/api/v1/tasks/{id}
-  - 機能:指定されたidのdeletedをtrueに更新
+  - メソッド：DELETE
+  - エンドポイント：`/api/v1/tasks/{id}`
+  - 機能：指定されたidのdeletedをtrueに更新
 
 ※データはDBでなくJSONファイルで管理。
 

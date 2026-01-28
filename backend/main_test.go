@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"encoding/json"
@@ -11,13 +12,185 @@ import (
 	"time"
 )
 
+// postTasksHandler のテスト
+func TestPostTasksHandler(t *testing.T) {
+
+	// ケース1: 初回のPOSTリクエスト
+	t.Run("FirstPostRequest", func(t *testing.T) {
+
+		// 1. テスト用の一時ファイルを作成
+		tempDir := t.TempDir() // テスト終了時に自動でクリーンアップされる一時ディレクトリ
+		tempFilePath := filepath.Join(tempDir, "test_tasks.json")
+
+		// 2. テスト対象のサーバーを一時ファイルパスで初期化
+		server := NewServer(tempFilePath)
+
+		// 3. テスト用のHTTPリクエストを作成
+		newTask := Task{Name: "タスク01"}
+		reqBody, _ := json.Marshal(newTask)
+
+		req, _ := http.NewRequest("POST", "/api/v1/tasks", bytes.NewBuffer(reqBody))
+		req.Header.Set("Content-Type", "application/json")
+
+		// 4. レスポンスを記録するためのRecorderを作成
+		rr := httptest.NewRecorder()
+
+		// 5. テスト対象のハンドラーを実行
+		handler := http.HandlerFunc(server.getTasksHandler)
+		handler.ServeHTTP(rr, req)
+
+		// 6. ステータスコードの検証
+		if status := rr.Code; status != http.StatusOK {
+			t.Errorf("ステータスコードのテスト失敗\n実測値: %v\n期待値: %v", status, http.StatusOK)
+		}
+
+		// 7. JSONファイルの検証
+		fileContent, _ := os.ReadFile(tempFilePath)
+		var fileTasks []Task
+		if err := json.Unmarshal(fileContent, &fileTasks); err != nil {
+			t.Fatalf("ファイル内容のデコードに失敗: %v", err)
+		}
+
+		// JSONファイルのタスク数
+		actualTaskCount := len(fileTasks)
+		expectedTaskCount := 1
+		if actualTaskCount != expectedTaskCount {
+			t.Errorf("JSONファイルのタスク数が不正\n実測値: %v\n期待値: %v", actualTaskCount, expectedTaskCount)
+		}
+
+		// ファイルに追加されたタスク
+		addedTask := fileTasks[0]
+
+		// 作成日時の検証: 実行時刻と保存された時刻の差が小さいことを確認（1秒以内）
+		if time.Since(addedTask.Created) > 1*time.Second {
+			t.Errorf("作成日時が不正: %v", addedTask.Created)
+		}
+
+		// 更新日時の検証: 実行時刻と保存された時刻の差が小さいことを確認（1秒以内）
+		if time.Since(addedTask.Updated) > 1*time.Second {
+			t.Errorf("更新日時が不正: %v", addedTask.Updated)
+		}
+
+		// 追加されたタスクの期待値
+		expectedTask := Task{Id: 1, Name: "タスク01", Status: 0, Deleted: false}
+		expectedTask.Created = addedTask.Created // 作成日時は期待値に実測値を設定
+		expectedTask.Updated = addedTask.Updated // 更新日時は期待値に実測値を設定
+
+		// 期待値
+		expectedTasks := []Task{expectedTask}
+
+		// JSONファイルの内容と想定されるタスクの比較
+		if !reflect.DeepEqual(fileContent, expectedTasks) {
+			t.Errorf("JSONファイルのテスト失敗\n実測値: %v\n期待値: %v", fileTasks, expectedTasks)
+		}
+
+		// 8. レスポンスボディの検証
+		var task Task
+		if err := json.NewDecoder(rr.Body).Decode(&task); err != nil {
+			t.Fatalf("レスポンスボディのデコードに失敗: %v", err)
+		}
+		if !reflect.DeepEqual(task, expectedTask) {
+			t.Errorf("レスポンスボディのテスト失敗\n実測値: %v\n期待値: %v", task, expectedTask)
+		}
+	})
+
+	// ケース2: 2回目のPOSTリクエスト
+	t.Run("SecondPostRequest", func(t *testing.T) {
+
+		// 1. テスト用のデータと一時ファイルを作成
+		initialTasks := []Task{
+			{Id: 1, Name: "タスク01", Status: 0, Created: time.Date(2025, 12, 1, 10, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 1, 10, 0, 0, 0, time.UTC), Deleted: false},
+		}
+		initialJSON, _ := json.Marshal(initialTasks)
+
+		// t.TempDir() によりテスト終了時に自動でクリーンアップされる一時ディレクトリを作成
+		tempDir := t.TempDir()
+		tempFilePath := filepath.Join(tempDir, "test_tasks.json")
+		if err := os.WriteFile(tempFilePath, initialJSON, 0666); err != nil {
+			t.Fatalf("一時ファイルへの書き込みに失敗: %v", err)
+		}
+
+		// 2. テスト対象のサーバーを一時ファイルパスで初期化
+		server := NewServer(tempFilePath)
+
+		// 3. テスト用のHTTPリクエストを作成
+		newTask := Task{Name: "タスク02"}
+		reqBody, _ := json.Marshal(newTask)
+
+		req, _ := http.NewRequest("POST", "/api/v1/tasks", bytes.NewBuffer(reqBody))
+		req.Header.Set("Content-Type", "application/json")
+
+		// 4. レスポンスを記録するためのRecorderを作成
+		rr := httptest.NewRecorder()
+
+		// 5. テスト対象のハンドラーを実行
+		handler := http.HandlerFunc(server.getTasksHandler)
+		handler.ServeHTTP(rr, req)
+
+		// 6. ステータスコードの検証
+		if status := rr.Code; status != http.StatusOK {
+			t.Errorf("ステータスコードのテスト失敗\n実測値: %v\n期待値: %v", status, http.StatusOK)
+		}
+
+		// 7. JSONファイルの検証
+		fileContent, _ := os.ReadFile(tempFilePath)
+		var fileTasks []Task
+		if err := json.Unmarshal(fileContent, &fileTasks); err != nil {
+			t.Fatalf("ファイル内容のデコードに失敗: %v", err)
+		}
+
+		// JSONファイルのタスク数
+		actualTaskCount := len(fileTasks)
+		expectedTaskCount := 2
+		if actualTaskCount != expectedTaskCount {
+			t.Errorf("JSONファイルのタスク数が不正\n実測値: %v\n期待値: %v", actualTaskCount, expectedTaskCount)
+		}
+
+		// ファイルに追加されたタスク
+		addedTask := fileTasks[1]
+
+		// 作成日時の検証: 実行時刻と保存された時刻の差が小さいことを確認（1秒以内）
+		if time.Since(addedTask.Created) > 1*time.Second {
+			t.Errorf("作成日時が不正: %v", addedTask.Created)
+		}
+
+		// 更新日時の検証: 実行時刻と保存された時刻の差が小さいことを確認（1秒以内）
+		if time.Since(addedTask.Updated) > 1*time.Second {
+			t.Errorf("更新日時が不正: %v", addedTask.Updated)
+		}
+
+		// 追加されたタスクの期待値
+		expectedTask := Task{Id: 2, Name: "タスク02", Status: 0, Deleted: false}
+		expectedTask.Created = addedTask.Created // 作成日時は期待値に実測値を設定
+		expectedTask.Updated = addedTask.Updated // 更新日時は期待値に実測値を設定
+
+		// 期待値
+		expectedTasks := append(initialTasks, expectedTask)
+
+		// JSONファイルの内容と想定されるタスクの比較
+		if !reflect.DeepEqual(fileContent, expectedTasks) {
+			t.Errorf("JSONファイルのテスト失敗\n実測値: %v\n期待値: %v", fileTasks, expectedTasks)
+		}
+
+		// 8. レスポンスボディの検証
+		var task Task
+		if err := json.NewDecoder(rr.Body).Decode(&task); err != nil {
+			t.Fatalf("レスポンスボディのデコードに失敗: %v", err)
+		}
+		if !reflect.DeepEqual(task, expectedTask) {
+			t.Errorf("レスポンスボディのテスト失敗\n実測値: %v\n期待値: %v", task, expectedTask)
+		}
+	})
+}
+
 // getTasksHandler のテスト
 func TestGetTasksHandler(t *testing.T) {
+
 	// 1. テスト用のデータと一時ファイルを作成
 	expectedTasks := []Task{
-		{ID: 1, Name: "タスク01", Status: 1, Created: time.Date(2025, 12, 1, 10, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 1, 10, 0, 0, 0, time.UTC), Deleted: false},
-		{ID: 2, Name: "タスク02", Status: 2, Created: time.Date(2025, 12, 2, 11, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 2, 11, 0, 0, 0, time.UTC), Deleted: false},
-		{ID: 3, Name: "タスク03", Status: 3, Created: time.Date(2025, 12, 3, 12, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 3, 12, 0, 0, 0, time.UTC), Deleted: false},
+		{Id: 1, Name: "タスク01", Status: 0, Created: time.Date(2025, 12, 1, 10, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 1, 10, 0, 0, 0, time.UTC), Deleted: false},
+		{Id: 2, Name: "タスク02", Status: 1, Created: time.Date(2025, 12, 2, 11, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 2, 11, 0, 0, 0, time.UTC), Deleted: false},
+		{Id: 3, Name: "タスク03", Status: 1, Created: time.Date(2025, 12, 3, 12, 0, 0, 0, time.UTC), Updated: time.Date(2025, 12, 3, 12, 0, 0, 0, time.UTC), Deleted: true},
 	}
 	tasksJSON, err := json.Marshal(expectedTasks)
 	if err != nil {
