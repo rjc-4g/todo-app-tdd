@@ -187,7 +187,7 @@ func TestPostTasksHandler(t *testing.T) {
 
 		// 1. テスト対象のサーバーを不正な値（ファイルパスでなくディレクトリ）で初期化
 		tempDir := t.TempDir()
-		server := NewServer(tempFilePath)
+		server := NewServer(tempDir)
 
 		// 2. テスト用のHTTPリクエストを作成
 		newTask := Task{Name: "タスク01"}
@@ -308,7 +308,7 @@ func TestGetTasksHandler(t *testing.T) {
 
 		// 1. テスト対象のサーバーを不正な値（ファイルパスでなくディレクトリ）で初期化
 		tempDir := t.TempDir()
-		server := NewServer(tempFilePath)
+		server := NewServer(tempDir)
 
 		// 2. テスト用のHTTPリクエストを作成
 		req, _ := http.NewRequest("GET", "/api/v1/tasks", nil)
@@ -536,7 +536,7 @@ func TestPatchTasksHandler(t *testing.T) {
 
 		// 1. テスト対象のサーバーを不正な値（ファイルパスでなくディレクトリ）で初期化
 		tempDir := t.TempDir()
-		server := NewServer(tempFilePath)
+		server := NewServer(tempDir)
 
 		// 2. テスト用のHTTPリクエストを作成
 		reqTask := Task{Status: 1}
@@ -687,7 +687,7 @@ func TestDeleteTasksHandler(t *testing.T) {
 
 		// 1. テスト対象のサーバーを不正な値（ファイルパスでなくディレクトリ）で初期化
 		tempDir := t.TempDir()
-		server := NewServer(tempFilePath)
+		server := NewServer(tempDir)
 
 		// 2. テスト用のHTTPリクエストを作成
 		req, _ := http.NewRequest("PATCH", "/api/v1/tasks/1", nil)
