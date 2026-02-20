@@ -1,23 +1,33 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
 	"net/http"
 )
 
-func helloHandler(w http.ResponseWriter, r *http.Request) {
-	// レスポンスとして文字列を書き込む
-	fmt.Fprint(w, "Hello, World!")
+// 一覧表示（Read）のハンドラー：まずはテストを通すために空を返す
+func getTasksHandler(w http.ResponseWriter, r *http.Request) {
+	tasks := []Task{} // 本来はJSONファイルから読み込むが、今は空
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(tasks)
 }
 
-func main() {
-	// ルートパス "/" にアクセスしたときに helloHandler を実行する設定
-	http.HandleFunc("/", helloHandler)
+// TODO: 他のハンドラーも同様に定義していく
+// func createTasksHandler...
+// func updateTaskHandler...
+// func deleteTaskHandler...
 
-	fmt.Println("Server is running on http://localhost:8080")
-	
-	// 8080ポートでサーバーを起動
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		fmt.Printf("Error starting server: %s\n", err)
-	}
+func main() {
+    // ルーティング設定
+    http.HandleFunc("/api/v1/tasks", func(w http.ResponseWriter, r *http.Request) {
+        switch r.Method {
+        case http.MethodGet:
+            getTasksHandler(w, r)
+        case http.MethodPost:
+            // createTasksHandler(w, r)
+        default:
+            w.WriteHeader(http.StatusMethodNotAllowed)
+        }
+    })
+    // サーバー起動処理...
 }
