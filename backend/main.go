@@ -120,6 +120,52 @@ func (s *Server) postTasksHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(newTask)
 }
 
+// getTasksHandler はタスクの一覧を取得するリクエストを処理
+// HTTP GETリクエストを受け取り、JSONファイルからタスク一覧を返す。
+func (s *Server) getTasksHandler(w http.ResponseWriter, r *http.Request) {
+	// 既存のタスク一覧をファイルから読み込む
+	file, err := os.ReadFile(s.taskFilePath)
+	// ファイルが存在しないエラーは許容するが、それ以外の読み込みエラーは500を返す
+	if err != nil && !os.IsNotExist(err) {
+		http.Error(w, "タスクファイルの読み込みに失敗しました: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// ファイルが空、または存在しない場合は空のタスク一覧として扱う
+	if len(file) == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode([]Task{}) // 空の配列を返す
+		return
+	}
+
+	var tasks []Task
+	// ファイルの中身をTaskスライスにデコード
+	if err := json.Unmarshal(file, &tasks); err != nil {
+		http.Error(w, "タスクデータの解析に失敗しました: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// レスポンスとしてタスク一覧を返す
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(tasks)
+}
+
+// tasksHandler は /api/v1/tasks へのリクエストをHTTPメソッドに応じて振り分ける
+func (s *Server) tasksHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		s.getTasksHandler(w, r)
+	case http.MethodPost:
+		s.postTasksHandler(w, r)
+	default:
+		// 対応していないメソッドの場合は405を返す
+		w.Header().Set("Allow", http.MethodGet+", "+http.MethodPost)
+		http.Error(w, "許可されていないメソッドです", http.StatusMethodNotAllowed)
+	}
+}
+
 // main はアプリケーションのエントリーポイント
 func main() {
 
@@ -128,7 +174,7 @@ func main() {
 
 	// URLパスとハンドラ関数をマッピング
 	http.HandleFunc("/", server.helloHandler)
-	http.HandleFunc("/api/v1/tasks", server.postTasksHandler)
+	http.HandleFunc("/api/v1/tasks", server.tasksHandler)
 
 	// サーバーをポート8080で起動
 	log.Println("Server starting on port 8080...")
