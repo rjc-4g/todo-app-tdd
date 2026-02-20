@@ -215,6 +215,60 @@ func (s *Server) patchTasksHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// deleteTasksHandler はタスクを削除（論理削除）するリクエストを処理
+func (s *Server) deleteTasksHandler(w http.ResponseWriter, r *http.Request) {
+	// URLパスからIDを取得
+	idStr := strings.TrimPrefix(r.URL.Path, "/api/v1/tasks/")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "IDの形式が不正です", http.StatusBadRequest)
+		return
+	}
+
+	// ファイル読み込み
+	file, err := os.ReadFile(s.taskFilePath)
+	if err != nil {
+		http.Error(w, "タスクファイルの読み込みに失敗しました: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var tasks []Task
+	if err := json.Unmarshal(file, &tasks); err != nil {
+		http.Error(w, "タスクデータの解析に失敗しました: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// タスクの検索と削除（論理削除）
+	found := false
+	for i, t := range tasks {
+		if t.Id == id {
+			tasks[i].Deleted = true
+			tasks[i].Updated = time.Now()
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		http.Error(w, "指定されたIDのタスクが見つかりません", http.StatusNotFound)
+		return
+	}
+
+	// ファイル書き込み
+	tasksJSON, err := json.MarshalIndent(tasks, "", "  ")
+	if err != nil {
+		http.Error(w, "タスクデータのJSON変換に失敗しました: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := os.WriteFile(s.taskFilePath, tasksJSON, 0666); err != nil {
+		http.Error(w, "タスクファイルの書き込みに失敗しました: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 // tasksHandler は /api/v1/tasks へのリクエストをHTTPメソッドに応じて振り分ける
 func (s *Server) tasksHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -234,8 +288,10 @@ func (s *Server) taskHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPatch:
 		s.patchTasksHandler(w, r)
+	case http.MethodDelete:
+		s.deleteTasksHandler(w, r)
 	default:
-		w.Header().Set("Allow", http.MethodPatch)
+		w.Header().Set("Allow", http.MethodPatch+", "+http.MethodDelete)
 		http.Error(w, "許可されていないメソッドです", http.StatusMethodNotAllowed)
 	}
 }
