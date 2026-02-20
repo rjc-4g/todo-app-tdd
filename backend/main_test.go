@@ -2,12 +2,13 @@ package main
 
 import (
 	"bytes"
-	"os"
-	"path/filepath"
 	"encoding/json"
-	"reflect"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -397,8 +398,9 @@ func TestPatchTasksHandler(t *testing.T) {
 		expectedTask.Updated = updatedTask.Updated // 更新日時は期待値に実測値を設定
 
 		// JSONファイルの内容と想定されるタスクの比較
-		if !reflect.DeepEqual(fileTasks, expectedTasks) {
-			t.Errorf("JSONファイルのテスト失敗\n実測値: %v\n期待値: %v", fileTasks, expectedTasks)
+		initialTasks[taskId - 1] = expectedTask
+		if !reflect.DeepEqual(fileTasks, initialTasks) {
+			t.Errorf("JSONファイルのテスト失敗\n実測値: %v\n期待値: %v", fileTasks, initialTasks)
 		}
 	})
 
@@ -468,8 +470,9 @@ func TestPatchTasksHandler(t *testing.T) {
 		expectedTask.Updated = updatedTask.Updated // 更新日時は期待値に実測値を設定
 
 		// JSONファイルの内容と想定されるタスクの比較
-		if !reflect.DeepEqual(fileTasks, expectedTasks) {
-			t.Errorf("JSONファイルのテスト失敗\n実測値: %v\n期待値: %v", fileTasks, expectedTasks)
+		initialTasks[taskId - 1] = expectedTask
+		if !reflect.DeepEqual(fileTasks, initialTasks) {
+			t.Errorf("JSONファイルのテスト失敗\n実測値: %v\n期待値: %v", fileTasks, initialTasks)
 		}
 	})
 
@@ -620,11 +623,12 @@ func TestDeleteTasksHandler(t *testing.T) {
 		// 削除されたタスクの期待値
 		expectedTask := initialTasks[taskId - 1]
 		expectedTask.Deleted = true
-		expectedTask.Updated = updatedTask.Updated // 更新日時は期待値に実測値を設定
+		expectedTask.Updated = deletedTask.Updated // 更新日時は期待値に実測値を設定
 
 		// JSONファイルの内容と想定されるタスクの比較
-		if !reflect.DeepEqual(fileTasks, expectedTasks) {
-			t.Errorf("JSONファイルのテスト失敗\n実測値: %v\n期待値: %v", fileTasks, expectedTasks)
+		initialTasks[taskId - 1] = expectedTask
+		if !reflect.DeepEqual(fileTasks, initialTasks) {
+			t.Errorf("JSONファイルのテスト失敗\n実測値: %v\n期待値: %v", fileTasks, initialTasks)
 		}
 	})
 
