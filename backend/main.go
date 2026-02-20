@@ -3,9 +3,11 @@ package main
 import (
 	"encoding/json"
 	"log"
-	"path/filepath"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -152,6 +154,67 @@ func (s *Server) getTasksHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(tasks)
 }
 
+// patchTasksHandler はタスクのステータスを更新するリクエストを処理
+func (s *Server) patchTasksHandler(w http.ResponseWriter, r *http.Request) {
+	// URLパスからIDを取得
+	idStr := strings.TrimPrefix(r.URL.Path, "/api/v1/tasks/")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "IDの形式が不正です", http.StatusBadRequest)
+		return
+	}
+
+	// リクエストボディから更新内容をデコード
+	var reqTask Task
+	if err := json.NewDecoder(r.Body).Decode(&reqTask); err != nil {
+		http.Error(w, "リクエストボディの解析に失敗しました: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// ファイル読み込み
+	file, err := os.ReadFile(s.taskFilePath)
+	if err != nil {
+		http.Error(w, "タスクファイルの読み込みに失敗しました: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var tasks []Task
+	if err := json.Unmarshal(file, &tasks); err != nil {
+		http.Error(w, "タスクデータの解析に失敗しました: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// タスクの検索と更新
+	found := false
+	for i, t := range tasks {
+		if t.Id == id {
+			tasks[i].Status = reqTask.Status
+			tasks[i].Updated = time.Now()
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		http.Error(w, "指定されたIDのタスクが見つかりません", http.StatusNotFound)
+		return
+	}
+
+	// ファイル書き込み
+	tasksJSON, err := json.MarshalIndent(tasks, "", "  ")
+	if err != nil {
+		http.Error(w, "タスクデータのJSON変換に失敗しました: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := os.WriteFile(s.taskFilePath, tasksJSON, 0666); err != nil {
+		http.Error(w, "タスクファイルの書き込みに失敗しました: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 // tasksHandler は /api/v1/tasks へのリクエストをHTTPメソッドに応じて振り分ける
 func (s *Server) tasksHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -166,6 +229,17 @@ func (s *Server) tasksHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// taskHandler は /api/v1/tasks/{id} へのリクエストをHTTPメソッドに応じて振り分ける
+func (s *Server) taskHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPatch:
+		s.patchTasksHandler(w, r)
+	default:
+		w.Header().Set("Allow", http.MethodPatch)
+		http.Error(w, "許可されていないメソッドです", http.StatusMethodNotAllowed)
+	}
+}
+
 // main はアプリケーションのエントリーポイント
 func main() {
 
@@ -175,6 +249,7 @@ func main() {
 	// URLパスとハンドラ関数をマッピング
 	http.HandleFunc("/", server.helloHandler)
 	http.HandleFunc("/api/v1/tasks", server.tasksHandler)
+	http.HandleFunc("/api/v1/tasks/", server.taskHandler)
 
 	// サーバーをポート8080で起動
 	log.Println("Server starting on port 8080...")
