@@ -590,7 +590,7 @@ func TestDeleteTasksHandler(t *testing.T) {
 
 		// 3. テスト用のHTTPリクエストを作成
 		taskId := 1 // 削除対象のId
-		req, _ := http.NewRequest("PATCH", "/api/v1/tasks/" + strconv.Itoa(taskId), nil)
+		req, _ := http.NewRequest("DELETE", "/api/v1/tasks/"+strconv.Itoa(taskId), nil)
 		req.Header.Set("Content-Type", "application/json")
 
 		// 4. レスポンスを記録するためのRecorderを作成
@@ -658,7 +658,7 @@ func TestDeleteTasksHandler(t *testing.T) {
 
 		// 3. テスト用のHTTPリクエストを作成
 		taskId := 4 // 存在しないId
-		req, _ := http.NewRequest("PATCH", "/api/v1/tasks/" + strconv.Itoa(taskId), nil)
+		req, _ := http.NewRequest("DELETE", "/api/v1/tasks/"+strconv.Itoa(taskId), nil)
 		req.Header.Set("Content-Type", "application/json")
 
 		// 4. レスポンスを記録するためのRecorderを作成
@@ -694,7 +694,7 @@ func TestDeleteTasksHandler(t *testing.T) {
 		server := NewServer(tempDir)
 
 		// 2. テスト用のHTTPリクエストを作成
-		req, _ := http.NewRequest("PATCH", "/api/v1/tasks/1", nil)
+		req, _ := http.NewRequest("DELETE", "/api/v1/tasks/1", nil)
 		req.Header.Set("Content-Type", "application/json")
 
 		// 3. レスポンスを記録するためのRecorderを作成
