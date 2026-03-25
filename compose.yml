@@ -8,6 +8,10 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    environment:
+      - API_TARGET=http://app:8080
+    depends_on:
+      - app
     tty: true
   app:
     build:
