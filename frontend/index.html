@@ -1,13 +1,44 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <link href="/src/styles.css" rel="stylesheet" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React + TS</title>
+    <meta name="color-scheme" content="only light" />
+    <title>TODO APP TDD</title>
+    <style>
+      :root {
+        color-scheme: only light;
+      }
+
+      /* 通常時のテキスト入力欄スタイル */
+      input[type="text"] {
+        background-color: #ffffff;
+        color: #111827;
+        border-radius: 6px;
+      }
+
+      /* 【自動補完時】グレー背景・白文字を最優先で適用 */
+      html body input:-webkit-autofill,
+      html body input:-webkit-autofill:hover, 
+      html body input:-webkit-autofill:focus,
+      html body input:-webkit-autofill:active,
+      html body input:-internal-autofill-selected {
+        -webkit-text-fill-color: #ffffff !important;
+        color: #ffffff !important;
+        background-color: #374151 !important;
+        -webkit-box-shadow: 0 0 0px 1000px #374151 inset !important;
+        box-shadow: 0 0 0px 1000px #374151 inset !important;
+        transition: background-color 5000000s ease-in-out 0s, color 5000000s ease-in-out 0s !important;
+      }
+
+      input::placeholder {
+        color: #6b7280 !important;
+        opacity: 1 !important;
+      }
+    </style>
   </head>
-  <body class="min-h-screen bg-gray-900 text-gray-100">
-    <div id="root" class="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900"></div>
+  <body class="min-h-screen bg-gray-50 text-gray-900">
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
