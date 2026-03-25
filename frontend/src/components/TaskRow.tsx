@@ -3,12 +3,12 @@ import { Button } from './Button';
 import { Checkbox } from './Checkbox';
 import { TaskText } from './TaskText';
 
-export function TaskRow({ task }: { task: Task }) {
+export function TaskRow({ task, handleDelete }: { task: Task; handleDelete: (id: number) => void }) {
   return (
     <div className="flex items-stretch gap-4 h-16">
       <Checkbox status={task.status} className="bg-white" />
       <TaskText>{task.name}</TaskText>
-      <Button>削除</Button>
+      <Button onClick={() => handleDelete(task.id)}>削除</Button>
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { Button } from "./components/Button";
 import { DraftTaskRow } from "./components/DraftTaskRow";
 import { TaskRow } from "./components/TaskRow";
 import { Title } from "./components/Title";
-import { getTasks, postTask } from "./lib/api";
+import { deleteTask, getTasks, postTask } from "./lib/api";
 import { Task } from "./lib/types";
 
 export default function App() {
@@ -27,9 +27,19 @@ export default function App() {
     }
   };
 
+  const handleDelete = async (id: number) => {
+
+    const response = await deleteTask(id);
+
+    if (response.ok) {
+      setTasks(tasks.filter(task => task.id !== id));
+    }
+  };
+
   useEffect(() => {
-    getTasks().then(res => res.json())
-              .then(data => setTasks(data));
+    getTasks().then(res => res.json() as Promise<Task[]>)
+              .then(tasks => tasks.filter(task => task.deleted === false))
+              .then(tasks => setTasks(tasks));
   }, []);
 
 
@@ -42,8 +52,7 @@ export default function App() {
       </div>
 
       <div className="space-y-6 max-w-4xl mx-auto">
-        {tasks.filter(task => task.deleted === false)
-              .map(task => <TaskRow key={task.id} task={task} />)}
+        {tasks.map(task => <TaskRow key={task.id} task={task} handleDelete={handleDelete} />)}
         {draftTask !== null && 
           <DraftTaskRow draftTask={draftTask} setDraftTask={setDraftTask} handleConfirm={handleConfirm} />}
       </div>

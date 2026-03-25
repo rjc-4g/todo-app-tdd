@@ -13,3 +13,9 @@ export const postTask = (name: string) => {
       body: JSON.stringify({ name: name }),
     });
 };
+
+export const deleteTask = (id: number) => {
+    return fetch(`${API_BASE_URL}/api/v1/tasks/${id}`, {
+      method: "DELETE",
+    });
+};
