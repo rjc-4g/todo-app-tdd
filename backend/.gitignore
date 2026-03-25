@@ -25,6 +25,10 @@ vendor/
 *.swp
 *.swo
 
+# Data files
+tasks.json
+tasks_test.json
+
 # OS固有ファイル
 .DS_Store
 Thumbs.db
