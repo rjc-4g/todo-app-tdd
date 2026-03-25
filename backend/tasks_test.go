@@ -16,6 +16,8 @@ const testFilePath = "tasks_test.json"
 
 // テストの事前準備と後片付け
 func setup() {
+	// テスト用にdbFileNameを変更
+	dbFileName = testFilePath
 	// テスト開始前にファイルを空にする、または削除する
 	os.WriteFile(testFilePath, []byte("[]"), 0644)
 }
@@ -23,6 +25,8 @@ func setup() {
 func teardown() {
 	// テスト終了後にファイルを削除する
 	os.Remove(testFilePath)
+	// dbFileNameを実データ用に戻す
+	dbFileName = "tasks.json"
 }
 
 // ========== CreateTask のテスト ==========

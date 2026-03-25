@@ -16,7 +16,7 @@ type Task struct {
 	Deleted bool   `json:"deleted"`
 }
 
-const dbFileName = "tasks.json" // データファイル名
+var dbFileName = "tasks.json" // データファイル名
 
 // CORS対応のミドルウェア
 func corsMiddleware(next http.Handler) http.Handler {
