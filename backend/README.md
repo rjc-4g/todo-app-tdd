@@ -8,7 +8,7 @@ Go 1.24.5とDockerを使用したシンプルなHTTPサーバーです。開発�
 - Airによるホットリロード機能
 - Docker環境での開発
 - ミニマルな構成
-cdcd
+
 ## 目的
 - テスト駆動開発
 
@@ -38,12 +38,12 @@ cdcd
 
 ## JSONファイルの構成
 ~~~
-id int(20) not null PK  auto incliment
+id int(20) not null PK  auto increment」
 name varchar(40) not null
 status int(1) not null default 0
 created timestamp not null
 updated timestamp not null
-deleted bool not null deafult false
+deleted bool not null default false
 ~~~
 
 ## 動作確認
