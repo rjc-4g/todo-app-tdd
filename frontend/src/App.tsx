@@ -1,15 +1,19 @@
+import { useEffect, useState } from "react";
 import { Button } from "./components/Button";
 import { TaskRow } from "./components/TaskRow";
 import { Title } from "./components/Title";
-import { Task } from "./types";
+import { API_BASE_URL } from "./lib/constants";
+import { Task } from "./lib/types";
 
 export default function App() {
 
-  const tasks: Task[] = [
-    { id: 1, name: "タスク1", status: 0, created: new Date(), updated: new Date(), deleted: false },
-    { id: 2, name: "タスク2", status: 1, created: new Date(), updated: new Date(), deleted: false },
-    { id: 3, name: "タスクを入力してください", status: 0, created: new Date(), updated: new Date(), deleted: false },
-  ];
+  const [tasks, setTasks] = useState<Task[]>([]);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/v1/tasks`)
+      .then((res) => res.json())
+      .then((data) => setTasks(data));
+  }, []);
 
   return (
     <div className="min-h-screen bg-teal-600 p-8 font-sans">
@@ -20,7 +24,8 @@ export default function App() {
       </div>
 
       <div className="space-y-6 max-w-4xl mx-auto">
-        {tasks.map(task => <TaskRow task={task} />)}
+        {tasks.filter(task => task.deleted === false)
+              .map(task => <TaskRow key={task.id} task={task} />)}
       </div>
 
     </div>

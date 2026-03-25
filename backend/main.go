@@ -296,6 +296,21 @@ func (s *Server) taskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// enableCORS はCORS設定を適用するミドルウェア
+func enableCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // main はアプリケーションのエントリーポイント
 func main() {
 
@@ -303,13 +318,14 @@ func main() {
 	server := NewServer("data/tasks.json")
 
 	// URLパスとハンドラ関数をマッピング
-	http.HandleFunc("/", server.helloHandler)
-	http.HandleFunc("/api/v1/tasks", server.tasksHandler)
-	http.HandleFunc("/api/v1/tasks/", server.taskHandler)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", server.helloHandler)
+	mux.HandleFunc("/api/v1/tasks", server.tasksHandler)
+	mux.HandleFunc("/api/v1/tasks/", server.taskHandler)
 
 	// サーバーをポート8080で起動
 	log.Println("Server starting on port 8080...")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	if err := http.ListenAndServe(":8080", enableCORS(mux)); err != nil {
 		log.Fatal("Server failed to start:", err)
 	}
 }

@@ -1,4 +1,4 @@
-import { Task } from '../types';
+import { Task } from '../lib/types';
 import { Button } from './Button';
 import { Checkbox } from './Checkbox';
 import { TaskText } from './TaskText';
