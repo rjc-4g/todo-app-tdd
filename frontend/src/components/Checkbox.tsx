@@ -1,6 +1,6 @@
-export function Checkbox({ status, className = "" }: { status: number; className?: string; }) {
+export function Checkbox({ status, className = "", onClick }: { status: number; className?: string; onClick?: () => void }) {
   return (
-    <div className={`w-16 border border-black flex items-center justify-center shrink-0 cursor-pointer ${className}`}>
+    <div onClick={onClick} className={`w-16 border border-black flex items-center justify-center shrink-0 cursor-pointer ${className}`}>
       {status === 1 && <CheckMark/>}
     </div>
   );

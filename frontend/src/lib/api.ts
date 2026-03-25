@@ -14,6 +14,16 @@ export const postTask = (name: string) => {
     });
 };
 
+export const patchTask = (id: number, status: number) => {
+    return fetch(`${API_BASE_URL}/api/v1/tasks/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status: status }),
+    });
+};
+
 export const deleteTask = (id: number) => {
     return fetch(`${API_BASE_URL}/api/v1/tasks/${id}`, {
       method: "DELETE",

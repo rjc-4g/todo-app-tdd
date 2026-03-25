@@ -3,7 +3,7 @@ import { Button } from "./components/Button";
 import { DraftTaskRow } from "./components/DraftTaskRow";
 import { TaskRow } from "./components/TaskRow";
 import { Title } from "./components/Title";
-import { deleteTask, getTasks, postTask } from "./lib/api";
+import { deleteTask, getTasks, patchTask, postTask } from "./lib/api";
 import { Task } from "./lib/types";
 
 export default function App() {
@@ -24,6 +24,15 @@ export default function App() {
       const newTask = await response.json();
       setTasks([...tasks, newTask]);
       setDraftTask(null);
+    }
+  };
+
+  const handleUpdateStatus = async (id: number, status: number) => {
+
+    const response = await patchTask(id, status);
+
+    if (response.ok) {
+      setTasks(tasks.map(task => (task.id === id ? { ...task, status } : task)));
     }
   };
 
@@ -52,7 +61,7 @@ export default function App() {
       </div>
 
       <div className="space-y-6 max-w-4xl mx-auto">
-        {tasks.map(task => <TaskRow key={task.id} task={task} handleDelete={handleDelete} />)}
+        {tasks.map(task => <TaskRow key={task.id} task={task} handleDelete={handleDelete} handleUpdateStatus={handleUpdateStatus} />)}
         {draftTask !== null && 
           <DraftTaskRow draftTask={draftTask} setDraftTask={setDraftTask} handleConfirm={handleConfirm} />}
       </div>
