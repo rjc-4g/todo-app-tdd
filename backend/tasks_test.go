@@ -12,7 +12,7 @@ import (
 )
 
 // テスト用の一時ファイルパス
-const testFilePath = "tasks.json"
+const testFilePath = "tasks_test.json"
 
 // テストの事前準備と後片付け
 func setup() {
