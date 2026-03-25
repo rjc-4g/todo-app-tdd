@@ -1,6 +1,6 @@
-export function Checkbox({ status }: { status: number }) {
+export function Checkbox({ status, className = "" }: { status: number; className?: string; }) {
   return (
-    <div className="w-16 bg-white border border-black flex items-center justify-center shrink-0 cursor-pointer">
+    <div className={`w-16 border border-black flex items-center justify-center shrink-0 cursor-pointer ${className}`}>
       {status === 1 && <CheckMark/>}
     </div>
   );
